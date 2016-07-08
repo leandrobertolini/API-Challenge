@@ -104,6 +104,16 @@ class RegisterPropertiesApiTestCase(BaseApiTestCase):
         assert response.json()['id']
         assert response.json()['bed'] == 4
 
+    def test_with_invalid_square(self):
+        payload = {'cordinate_y': 100, 'cordinate_x': 250,
+                   'bed': 4, 'title': 'teste',
+                   'price': 10.00, 'description': 'teste',
+                   'bath': 1, 'squareMeters': 250}
+        response = self.client.post('/api/v1/properties', payload)
+
+        assert response.status_code == 400
+        assert response.json()['squareMeters'] == 'The squareMeters must be between 20 and 240.'
+
 
 class GetPropertiesForCordianatesApiTestCase(BaseApiTestCase):
 
@@ -146,3 +156,28 @@ class GetPropertiesForCordianatesApiTestCase(BaseApiTestCase):
         response = self.client.get('/api/v1/properties/cordinates/400/800/600/600/')
         assert response.json()['foundProperties'] == 1
         assert 'Gode' in response.json()['properties'][0]['provinces']
+
+    def test_get_properties_with_limit(self):
+        obj = Property.objects.create(title='teste', description='teste',
+                                      bed=1, bath=3, price=10.00,
+                                      squareMeters=25, cordinate_x=200,
+                                      cordinate_y=400, provinces=['Scavy'])
+        obj.save()
+
+        obj = Property.objects.create(title='teste abc', description='teste abc',
+                                      bed=2, bath=3, price=10.00,
+                                      squareMeters=48, cordinate_x=900,
+                                      cordinate_y=180, provinces=['Gode'])
+        obj.save()
+
+        obj = Property.objects.create(title='teste abgg', description='abgg',
+                                      bed=4, bath=1, price=210.00,
+                                      squareMeters=210, cordinate_x=600,
+                                      cordinate_y=100, provinces=['Groola', 'Scavy'])
+        obj.save()
+
+        response = self.client.get('/api/v1/properties?limit=2')
+
+        assert response.status_code == 200
+        assert len(response.json()) == 2
+
